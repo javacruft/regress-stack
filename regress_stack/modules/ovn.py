@@ -41,7 +41,9 @@ OVN_CTL_OPTS = f"""--db-nb-addr={utils.my_ip()} \
 def setup():
     system_id = utils.fqdn()
     pathlib.Path(SYSTEM_ID).write_text(system_id)
-    pathlib.Path("/etc/default/openvswitch-switch").write_text(f"OVS_CTL_OPTS={OVS_CTL_OPTS}")
+    pathlib.Path("/etc/default/openvswitch-switch").write_text(
+        f"OVS_CTL_OPTS={OVS_CTL_OPTS}"
+    )
     pathlib.Path("/etc/default/ovn-central").write_text(f"OVN_CTL_OPTS={OVN_CTL_OPTS}")
     utils.restart_service("ovn-central")
     utils.restart_service("openvswitch-switch")

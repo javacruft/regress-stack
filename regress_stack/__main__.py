@@ -55,7 +55,7 @@ def test():
     utils.run("tempest", ["init", "mycloud01"])
     utils.run(
         "discover-tempest-config",
-        ["--create"], # , "--image", CIRROS, "--convert-to-raw"
+        ["--create"],  # , "--image", CIRROS, "--convert-to-raw"
         env=env,
         cwd="mycloud01",
     )

@@ -175,7 +175,7 @@ def _is_hw_virt_supported() -> bool:
             # to land upstream https://lwn.net/Articles/812280/ at the time
             # of writing (Nov 2020).
             LOG.warning(
-                "Nested virtualization is not supported on ARM" " - will use emulation"
+                "Nested virtualization is not supported on ARM - will use emulation"
             )
             return False
         else:

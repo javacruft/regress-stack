@@ -61,7 +61,7 @@ class ModuleComp:
 
 
 def get_dependencies(
-    search_path:str, module_info: pkgutil.ModuleInfo, package: str
+    search_path: str, module_info: pkgutil.ModuleInfo, package: str
 ) -> typing.Set[ModuleComp]:
     """Find dependencies of a given module."""
     finder = modulefinder.ModuleFinder(path=[search_path])
@@ -90,11 +90,16 @@ def build_dependency_graph(modules_mod: types.ModuleType) -> nx.DiGraph:
     graph.add_node(root)
 
     search_path = modules_dir.parent.parent.absolute()
+    banned = set()
 
     for module in modules:
         canonical_name = package + "." + module.name
         module_loaded = load_module(canonical_name, module.module_finder.path)
         missing_deps = set()
+        mod = ModuleComp(
+            canonical_name,
+            module_loaded,
+        )
         if hasattr(module_loaded, "PACKAGES"):
             for pkg_name in module_loaded.PACKAGES:
                 pkg = cache.get(pkg_name)
@@ -107,17 +112,32 @@ def build_dependency_graph(modules_mod: types.ModuleType) -> nx.DiGraph:
                     module.name,
                     missing_deps,
                 )
+                banned.add(mod)
                 continue
 
-        mod = ModuleComp(
-            canonical_name,
-            module_loaded,
-        )
+        dependencies = get_dependencies(str(search_path), module, package)
+        if dependencies.intersection(banned):
+            LOG.debug(
+                "Skipping module %r due to missing dependencies: %r",
+                module.name,
+                dependencies.intersection(banned),
+            )
+            banned.add(mod)
+            continue
         graph.add_node(mod)
         graph.add_edge(root, mod)
-        for dep in get_dependencies(str(search_path), module, package):
+        for dep in dependencies:
             graph.add_edge(dep, mod)
 
+    # Remove banned modules and their dependents
+    to_remove = set()
+    for banned_node in banned:
+        if banned_node in graph:
+            to_remove.add(banned_node)
+            to_remove.update(nx.descendants(graph, banned_node))
+
+    graph.remove_nodes_from(to_remove)  # Remove all in one operation
+    LOG.debug("Removed nodes due to missing dependencies: %r", to_remove)
     return graph
 
 
