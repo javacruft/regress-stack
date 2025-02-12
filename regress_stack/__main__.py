@@ -10,8 +10,6 @@ from regress_stack.modules import keystone, utils
 
 LOG = logging.getLogger(__name__)
 
-CIRROS = "http://download.cirros-cloud.net/0.6.2/cirros-0.6.2-x86_64-disk.img"
-
 
 def plan(target: typing.Optional[str]):
     order = get_execution_order(regress_stack.modules, target)
@@ -55,11 +53,11 @@ def test():
     utils.run("tempest", ["init", "mycloud01"])
     utils.run(
         "discover-tempest-config",
-        ["--create"],  # , "--image", CIRROS, "--convert-to-raw"
+        ["--create"],
         env=env,
         cwd="mycloud01",
     )
-    # utils.run("tempest", ["run", "--smoke"], env=env, cwd="mycloud01")
+    utils.run("tempest", ["run", "--smoke"], env=env, cwd="mycloud01")
 
 
 def list_modules():
