@@ -45,5 +45,8 @@ Depends:
  placement-api,
  python3-regress-stack,
  rabbitmq-server,
+ ceph-mon,
+ ceph-osd,
+ ceph-volume,
 Description: Dependency package for OpenStack Core
   Package for testing of all core Ubuntu OpenStack projects
