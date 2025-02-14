@@ -12,6 +12,7 @@ Build-Depends-Indep:
  python3-networkx,
  python3-openstackclient,
  python3-pyroute2,
+ python3-pytest,
 Standards-Version: 4.6.1
 
 Package: python3-regress-stack
