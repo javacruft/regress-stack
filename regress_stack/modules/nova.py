@@ -1,9 +1,21 @@
 import json
 import logging
 import os
+import pathlib
 import stat
+import subprocess
 import time
-from regress_stack.modules import glance, keystone, neutron, ovn, rabbitmq, mysql, utils
+from regress_stack.modules import (
+    ceph,
+    cinder,
+    glance,
+    keystone,
+    neutron,
+    ovn,
+    rabbitmq,
+    mysql,
+    utils,
+)
 
 PACKAGES = [
     "nova-api",
@@ -17,21 +29,24 @@ LOG = logging.getLogger(__name__)
 
 CONF = "/etc/nova/nova.conf"
 URL = f"http://{utils.fqdn()}:8774/v2.1"
+NOVA_CEPH_UUID = pathlib.Path("/etc/nova/ceph_uuid")
+SERVICE = "nova"
+SERVICE_TYPE = "compute"
 
 
 def setup():
-    db_user, db_pass = mysql.ensure_service("nova")
+    db_user, db_pass = mysql.ensure_service(SERVICE)
     db_api_user, db_api_pass = mysql.ensure_service("nova_api")
     db_cell0_user, db_cell0_pass = mysql.ensure_service("nova_cell0")
-    rabbit_user, rabbit_pass = rabbitmq.ensure_service("nova")
-    username, password = keystone.ensure_service_account("nova", "compute", URL)
-
+    rabbit_user, rabbit_pass = rabbitmq.ensure_service(SERVICE)
+    username, password = keystone.ensure_service_account(SERVICE, SERVICE_TYPE, URL)
+    pool = ceph.ensure_pool(cinder.VOLUME_POOL)
     utils.cfg_set(
         CONF,
         (
             "database",
             "connection",
-            mysql.connection_string("nova", db_user, db_pass),
+            mysql.connection_string(SERVICE, db_user, db_pass),
         ),
         ("database", "max_pool_size", "1"),
         (
@@ -85,8 +100,25 @@ def setup():
                 "keymap": "en-us",
             },
         ),
-        ("libvirt", "virt_type", virt_type()),
+        *utils.dict_to_cfg_set_args(
+            "libvirt",
+            {
+                "virt_type": virt_type(),
+                "rbd_user": pool,
+                "rbd_secret_uuid": ensure_libvirt_ceph_secret(),
+                "images_rbd_pool": pool,
+            },
+        ),
         ("os_vif_ovs", "ovsdb_connection", ovn.OVSDB_CONNECTION),
+        *utils.dict_to_cfg_set_args(
+            "cinder",
+            {
+                "service_type": cinder.SERVICE_TYPE,
+                "service_name": cinder.SERVICE,
+                "region_name": utils.REGION,
+                "volume_api_version": "3",
+            },
+        ),
     )
 
     utils.sudo("nova-manage", ["api_db", "sync"], user="nova")
@@ -192,3 +224,38 @@ def _is_hw_virt_supported() -> bool:
             " supported"
         )
         return False
+
+
+SECRET_TEMPLATE = """<secret ephemeral='no' private='no'>
+  <uuid>{uuid}</uuid>
+  <description>Ceph secret for Nova</description>
+  <usage type='ceph'>
+    <name>client.{user} secret</name>
+  </usage>
+</secret>
+"""
+
+
+def ensure_libvirt_ceph_secret() -> str:
+    secret_uuid = ceph.rbd_uuid()
+    try:
+        utils.run("virsh", ["secret-get-value", secret_uuid])
+        return secret_uuid
+    except subprocess.CalledProcessError:
+        pass
+    template = pathlib.Path("/tmp/secret.xml")
+    template.write_text(
+        SECRET_TEMPLATE.format(uuid=secret_uuid, user=cinder.VOLUME_USER)
+    )
+    utils.run("virsh", ["secret-define", "--file", str(template)])
+    utils.run(
+        "virsh",
+        [
+            "secret-set-value",
+            "--secret",
+            secret_uuid,
+            "--base64",
+            ceph.get_key(cinder.VOLUME_USER),
+        ],
+    )
+    return secret_uuid

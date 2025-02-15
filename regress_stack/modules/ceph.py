@@ -1,6 +1,7 @@
 import functools
 import logging
 import shutil
+import typing
 import uuid
 from pathlib import Path
 
@@ -10,15 +11,16 @@ PACKAGES = ["ceph-mon", "ceph-osd", "ceph-volume"]
 LOG = logging.getLogger(__name__)
 UUID_PATH = Path("/etc/ceph/fsid")
 
-CONF = "/etc/ceph/ceph.conf"
+CLUSTER = "ceph"
+CONF = f"/etc/ceph/{CLUSTER}.conf"
 MON_KEYRING = Path("/etc/ceph/ceph.mon.keyring")
 ADMIN_KEYRING = Path("/etc/ceph/ceph.client.admin.keyring")
 OSD_KEYRING = Path("/var/lib/ceph/bootstrap-osd/ceph.keyring")
 MONMAP = Path("/etc/ceph/ceph.monmap")
-CLUSTER = "ceph"
 DATA_FOLDER = Path(f"/var/lib/ceph/mon/{CLUSTER}-{utils.fqdn()}")
 SETUP_DONE = DATA_FOLDER / "done"
 LOOP_DEVICE_PATH = Path("/var/lib/ceph-osd")
+RBD_UUID = Path("/etc/ceph/rbd_secret_uuid")
 
 OSD_SIZE_GB = 2
 BS = 4096
@@ -40,6 +42,8 @@ def setup():
                 "auth client required": "cephx",
                 "osd pool default size": "1",
                 "osd pool default min size": "1",
+                "mon warn on insecure global id reclaim": "false",
+                "mon warn on insecure global id reclaim allowed": "false",
             },
         ),
     )
@@ -133,6 +137,14 @@ def setup_osd_keyring() -> Path:
     return OSD_KEYRING
 
 
+def create_keyring(name: str, caps: str) -> Path:
+    keyring = Path(f"/etc/ceph/ceph.{name}.keyring")
+    if keyring.exists():
+        return keyring
+
+    return keyring
+
+
 def import_keyrings():
     utils.run(
         "ceph-authtool",
@@ -219,3 +231,55 @@ def setup_osd(i: int) -> Path:
     utils.run("ceph-volume", ["raw", "activate", "--osd-id", str(i)])
     utils.restart_service(f"ceph-osd@{i}")
     return LOOP_DEVICE_PATH / name
+
+
+def ensure_pool(name: str) -> str:
+    pools = utils.run("ceph", ["osd", "pool", "ls"]).splitlines()
+    for pool in pools:
+        if name == pool.strip():
+            return name
+    utils.run("ceph", ["osd", "pool", "create", name, "32"])
+    return name
+
+
+def ensure_authenticate(pool: str, user: typing.Optional[str] = None) -> Path:
+    keyring = Path(f"/etc/ceph/ceph.client.{pool}.keyring")
+    if keyring.exists():
+        return keyring
+    utils.run(
+        "ceph-authtool",
+        [
+            "--create-keyring",
+            str(keyring),
+            "--gen-key",
+            "-n",
+            f"client.{pool}",
+            "--cap",
+            "mon",
+            "profile rbd",
+            "--cap",
+            "osd",
+            f"profile rbd pool={pool}",
+        ],
+    )
+    utils.run(
+        "ceph",
+        ["auth", "import", "-i", str(keyring)],
+    )
+    if user:
+        shutil.chown(keyring, user=user)
+    keyring.chmod(0o600)
+    return keyring
+
+
+def get_key(user: str) -> str:
+    return utils.run("ceph", ["auth", "get-key", f"client.{user}"]).strip()
+
+
+@functools.lru_cache
+def rbd_uuid() -> str:
+    if RBD_UUID.exists():
+        return RBD_UUID.read_text().strip()
+    uuid_str = str(uuid.uuid4())
+    RBD_UUID.write_text(uuid_str)
+    return uuid_str
