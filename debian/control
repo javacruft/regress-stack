@@ -30,6 +30,9 @@ Description: Regression testing tools for Ubuntu OpenStack
 Package: openstack-functional-core
 Architecture: all
 Depends:
+ ceph-mon,
+ ceph-osd,
+ ceph-volume,
  glance-api,
  keystone,
  mysql-server,
@@ -45,8 +48,5 @@ Depends:
  placement-api,
  python3-regress-stack,
  rabbitmq-server,
- ceph-mon,
- ceph-osd,
- ceph-volume,
 Description: Dependency package for OpenStack Core
   Package for testing of all core Ubuntu OpenStack projects

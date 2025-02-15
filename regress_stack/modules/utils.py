@@ -118,6 +118,7 @@ def exists_cache(path: pathlib.Path):
     """Wrapped function is not executed if resulting file exists."""
 
     def decorator(func):
+        @functools.wraps(func)
         def wrapper(*args, **kwargs):
             if path.exists():
                 return path
