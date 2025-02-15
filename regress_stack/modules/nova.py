@@ -5,15 +5,16 @@ import pathlib
 import stat
 import subprocess
 import time
+
 from regress_stack.modules import (
     ceph,
     cinder,
     glance,
     keystone,
+    mysql,
     neutron,
     ovn,
     rabbitmq,
-    mysql,
     utils,
 )
 

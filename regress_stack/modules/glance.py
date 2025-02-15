@@ -1,6 +1,6 @@
 import logging
 
-from regress_stack.modules import mysql, keystone, utils
+from regress_stack.modules import keystone, mysql, utils
 
 PACKAGES = ["glance-api"]
 LOG = logging.getLogger(__name__)

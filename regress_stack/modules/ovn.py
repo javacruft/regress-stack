@@ -1,10 +1,11 @@
+import ipaddress
 import logging
 import pathlib
 import re
 import subprocess
 
 import pyroute2
-import ipaddress
+
 from regress_stack.modules import utils
 
 PACKAGES = [

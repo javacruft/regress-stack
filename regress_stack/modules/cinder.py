@@ -1,6 +1,6 @@
 import logging
 
-from regress_stack.modules import ceph, mysql, keystone, rabbitmq, utils
+from regress_stack.modules import ceph, keystone, mysql, rabbitmq, utils
 
 PACKAGES = ["cinder-api", "cinder-scheduler", "cinder-volume"]
 LOG = logging.getLogger(__name__)

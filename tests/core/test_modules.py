@@ -1,9 +1,11 @@
 import contextlib
+import types
 import typing
 from unittest.mock import Mock
-import pytest
+
 import networkx as nx
-import types
+import pytest
+
 from regress_stack.core.modules import build_dependency_graph
 
 
