@@ -30,6 +30,7 @@ Description: Regression testing tools for Ubuntu OpenStack
 Package: openstack-functional-core
 Architecture: all
 Depends:
+ ceph-mgr,
  ceph-mon,
  ceph-osd,
  ceph-volume,

@@ -7,7 +7,7 @@ from pathlib import Path
 
 from regress_stack.modules import utils
 
-PACKAGES = ["ceph-mon", "ceph-osd", "ceph-volume"]
+PACKAGES = ["ceph-mgr", "ceph-mon", "ceph-osd", "ceph-volume"]
 LOG = logging.getLogger(__name__)
 UUID_PATH = Path("/etc/ceph/fsid")
 
@@ -17,8 +17,11 @@ MON_KEYRING = Path("/etc/ceph/ceph.mon.keyring")
 ADMIN_KEYRING = Path("/etc/ceph/ceph.client.admin.keyring")
 OSD_KEYRING = Path("/var/lib/ceph/bootstrap-osd/ceph.keyring")
 MONMAP = Path("/etc/ceph/ceph.monmap")
-DATA_FOLDER = Path(f"/var/lib/ceph/mon/{CLUSTER}-{utils.fqdn()}")
-SETUP_DONE = DATA_FOLDER / "done"
+MON_DATA_FOLDER = Path(f"/var/lib/ceph/mon/{CLUSTER}-{utils.fqdn()}")
+MON_SETUP_DONE = MON_DATA_FOLDER / "done"
+MGR_DATA_FOLDER = Path(f"/var/lib/ceph/mgr/{CLUSTER}-{utils.fqdn()}")
+MGR_KEYRING = MGR_DATA_FOLDER / "keyring"
+MGR_SETUP_DONE = MGR_DATA_FOLDER / "done"
 LOOP_DEVICE_PATH = Path("/var/lib/ceph-osd")
 RBD_UUID = Path("/etc/ceph/rbd_secret_uuid")
 
@@ -49,10 +52,12 @@ def setup():
     )
     ensure_ceph_folders()
     setup_mon_keyring()
+    setup_mgr_keyring()
     setup_admin_keyring()
     setup_osd_keyring()
     import_keyrings()
     setup_mon()
+    setup_mgr()
     for i in range(3):
         utils.exists_cache(LOOP_DEVICE_PATH / f"ceph-{i}")(setup_osd)(i)
 
@@ -87,6 +92,31 @@ def setup_mon_keyring() -> Path:
     )
     shutil.chown(MON_KEYRING, user="ceph", group="ceph")
     return MON_KEYRING
+
+
+@utils.exists_cache(MGR_KEYRING)
+def setup_mgr_keyring() -> Path:
+    utils.run(
+        "ceph-authtool",
+        [
+            "--create-keyring",
+            str(MGR_KEYRING),
+            "--gen-key",
+            "-n",
+            "mgr." + utils.fqdn(),
+            "--cap",
+            "mon",
+            "allow profile mgr",
+            "--cap",
+            "osd",
+            "allow *",
+            "--cap",
+            "mds",
+            "allow *",
+        ],
+    )
+    shutil.chown(MGR_KEYRING, user="ceph", group="ceph")
+    return MGR_KEYRING
 
 
 @utils.exists_cache(ADMIN_KEYRING)
@@ -151,6 +181,14 @@ def import_keyrings():
         [
             str(setup_mon_keyring()),
             "--import-keyring",
+            str(setup_mgr_keyring()),
+        ],
+    )
+    utils.run(
+        "ceph-authtool",
+        [
+            str(setup_mon_keyring()),
+            "--import-keyring",
             str(setup_admin_keyring()),
         ],
     )
@@ -182,11 +220,13 @@ def monmap() -> Path:
 
 
 def ensure_ceph_folders():
-    DATA_FOLDER.mkdir(parents=True, exist_ok=True)
-    shutil.chown(DATA_FOLDER, user="ceph", group="ceph")
+    MON_DATA_FOLDER.mkdir(parents=True, exist_ok=True)
+    shutil.chown(MON_DATA_FOLDER, user="ceph", group="ceph")
+    MGR_DATA_FOLDER.mkdir(parents=True, exist_ok=True)
+    shutil.chown(MGR_DATA_FOLDER, user="ceph", group="ceph")
 
 
-@utils.exists_cache(SETUP_DONE)
+@utils.exists_cache(MON_SETUP_DONE)
 def setup_mon():
     utils.sudo(
         "ceph-mon",
@@ -203,9 +243,16 @@ def setup_mon():
         ],
         "ceph",
     )
-    SETUP_DONE.touch()
+    MON_SETUP_DONE.touch()
     utils.restart_service(f"ceph-mon@{utils.fqdn()}")
-    return SETUP_DONE
+    return MON_SETUP_DONE
+
+
+@utils.exists_cache(MGR_SETUP_DONE)
+def setup_mgr():
+    utils.restart_service(f"ceph-mgr@{utils.fqdn()}")
+    MGR_SETUP_DONE.touch()
+    return MGR_SETUP_DONE
 
 
 def setup_loop_device(name: str) -> str:
