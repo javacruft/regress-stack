@@ -1,7 +1,8 @@
 import ipaddress
 import logging
 import time
-from regress_stack.modules import mysql, ovn, rabbitmq, keystone, utils
+
+from regress_stack.modules import keystone, mysql, ovn, rabbitmq, utils
 
 PACKAGES = ["neutron-server", "neutron-ovn-metadata-agent"]
 LOG = logging.getLogger(__name__)

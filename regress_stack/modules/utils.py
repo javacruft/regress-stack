@@ -1,5 +1,7 @@
 import functools
+import ipaddress
 import logging
+import pathlib
 import socket
 import subprocess
 import typing
@@ -19,7 +21,7 @@ def setup():
 
 def run(
     cmd: str,
-    args: typing.Sequence[str],
+    args: typing.Sequence[str] = (),
     env: typing.Optional[typing.Dict[str, str]] = None,
     cwd: typing.Optional[str] = None,
 ) -> str:
@@ -83,19 +85,46 @@ def fqdn() -> str:
     return run("hostname", ["-f"]).strip()
 
 
-def _get_local_ip_by_default_route() -> str:
+@functools.lru_cache()
+def _get_local_ip_by_default_route() -> typing.Tuple[str, int]:
     """Get host IP from default route interface."""
     with pyroute2.NDB() as ndb:
         default_route_ifindex = ndb.routes["default"]["oif"]
         iface = ndb.interfaces[default_route_ifindex]
-        ipaddr = iface.ipaddr[socket.AF_INET]["address"]
-        return ipaddr
+        ipaddr = iface.ipaddr[socket.AF_INET]
+        return ipaddr["address"], ipaddr["prefixlen"]
 
 
 @functools.lru_cache()
 def my_ip() -> str:
     try:
-        return _get_local_ip_by_default_route()
+        return _get_local_ip_by_default_route()[0]
     except Exception:
         LOG.exception("Failed to get local IP by default route")
-        return run("hostname", ["-I"]).strip().split()[0]
+        return "127.0.0.1"
+
+
+@functools.lru_cache()
+def my_network() -> str:
+    try:
+        ipaddr = _get_local_ip_by_default_route()
+        return str(ipaddress.ip_network(f"{ipaddr[0]}/{ipaddr[1]}", strict=False))
+    except Exception:
+        LOG.exception("Failed to get local IP by default route")
+        return "127.0.0.1/8"
+
+
+def exists_cache(path: pathlib.Path):
+    """Wrapped function is not executed if resulting file exists."""
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            if path.exists():
+                return path
+            result = func(*args, **kwargs)
+            return result
+
+        return wrapper
+
+    return decorator

@@ -1,5 +1,5 @@
-import typing
 import logging
+import typing
 
 from regress_stack.modules import utils
 
