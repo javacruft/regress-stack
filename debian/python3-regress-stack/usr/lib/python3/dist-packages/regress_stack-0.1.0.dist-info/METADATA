@@ -1,3 +1,16 @@
+Metadata-Version: 2.1
+Name: regress-stack
+Version: 0.1.0
+Summary: Regress Stack is a straightforward Ubuntu OpenStack package configurator designed to simplify the process of setting up an OpenStack environment for testing purposes.
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: crudini >=0.9.5
+Requires-Dist: networkx >=2.4
+Requires-Dist: pyroute2 <0.8
+Requires-Dist: python-apt
+Requires-Dist: python-openstackclient >=7.1.4
+
 # Regress Stack
 
 Welcome to **Regress Stack**! Regress Stack is a straightforward Ubuntu OpenStack package configurator. It is designed to simplify the process of setting up an OpenStack environment for testing purposes. With Regress Stack, you can easily install OpenStack packages on a single node and run basic smoke tests to verify the functionality of the packages.
@@ -39,5 +52,9 @@ We welcome contributions from the community! If you have ideas for new features 
 ## License
 
 This project is licensed under the Apache 2.0 License. See the [LICENSE](LICENSE) file for details.
+
+## Contact
+
+For questions or support, please reach out to our team at support@regress-stack.com.
 
 Happy Testing!

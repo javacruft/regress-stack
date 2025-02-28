@@ -2,5 +2,11 @@
 
 set -ex
 
-python3 -m regress_stack setup
-python3 -m regress_stack test
+NO_PROXY="localhost,$(hostname -A | tr ' ' ','),$(hostname -I | tr ' ' ','),$NO_PROXY"
+NO_PROXY="${NO_PROXY/,,/,}"
+
+export NO_PROXY
+
+regress-stack plan
+regress-stack setup
+regress-stack test

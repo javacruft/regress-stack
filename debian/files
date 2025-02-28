@@ -1,0 +1,3 @@
+openstack-functional-core_0.0.1~pre2_all.deb python optional
+python3-regress-stack_0.0.1~pre2_all.deb python optional
+regress-stack_0.0.1~pre2_amd64.buildinfo python optional
