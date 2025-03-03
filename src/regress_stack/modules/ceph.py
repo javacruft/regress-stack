@@ -1,6 +1,7 @@
 import functools
 import logging
 import shutil
+import subprocess
 import typing
 import uuid
 from pathlib import Path
@@ -33,6 +34,46 @@ OSD_SIZE_GB = 2
 BS = 4096
 COUNT = (OSD_SIZE_GB * 1024**3) // BS
 
+CEPH_OSD_UNIT_PATH = Path("/etc/systemd/system/ceph-osd@.service")
+CEPH_OSD_SYSTEMD = r"""
+[Unit]
+Description=Ceph object storage daemon osd.%i
+PartOf=ceph-osd.target
+After=network-online.target local-fs.target time-sync.target
+Before=remote-fs-pre.target ceph-osd.target
+Wants=network-online.target local-fs.target time-sync.target remote-fs-pre.target ceph-osd.target
+
+[Service]
+Environment=CLUSTER=ceph
+EnvironmentFile=-/etc/default/ceph
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStart=/usr/bin/ceph-osd -f --cluster ${CLUSTER} --id %i --setuser ceph --setgroup ceph
+ExecStartPre=/usr/lib/ceph/ceph-osd-prestart.sh --cluster ${CLUSTER} --id %i
+LimitNOFILE=1048576
+LimitNPROC=1048576
+LockPersonality=true
+MemoryDenyWriteExecute=true
+# Need NewPrivileges via `sudo smartctl`
+NoNewPrivileges=false
+PrivateTmp=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+# flushing filestore requires access to /proc/sys/vm/drop_caches
+ProtectKernelTunables=false
+ProtectSystem=full
+Restart=on-failure
+RestartSec=10
+RestrictSUIDSGID=true
+StartLimitBurst=3
+StartLimitInterval=30min
+TasksMax=infinity
+
+[Install]
+WantedBy=ceph-osd.target
+"""
 
 def setup():
     module_utils.cfg_set(
@@ -281,7 +322,15 @@ def setup_osd(i: int) -> Path:
     core_utils.run(
         "ceph-volume", ["raw", "prepare", "--bluestore", "--data", lo_device]
     )
-    core_utils.run("ceph-volume", ["raw", "activate", "--osd-id", str(i)])
+    try:
+        core_utils.run("ceph-volume", ["raw", "activate", "--osd-id", str(i)])
+    except subprocess.CalledProcessError as e:
+        if "systemd support not yet implemented" in e.stderr:
+            template_systemd_osd()
+            core_utils.run("ceph-volume", ["raw", "activate", "--osd-id", str(i), "--no-systemd"])
+        else:
+            LOG.error("Failed to activate osd %d: %s", i, e)
+            raise
     core_utils.restart_service(f"ceph-osd@{i}")
     return LOOP_DEVICE_PATH / name
 
@@ -336,3 +385,8 @@ def rbd_uuid() -> str:
     uuid_str = str(uuid.uuid4())
     RBD_UUID.write_text(uuid_str)
     return uuid_str
+
+@core_utils.exists_cache(CEPH_OSD_UNIT_PATH)
+def template_systemd_osd() -> Path:
+    CEPH_OSD_UNIT_PATH.write_text(CEPH_OSD_SYSTEMD)
+    return CEPH_OSD_UNIT_PATH
