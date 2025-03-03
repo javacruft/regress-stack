@@ -1,0 +1,11 @@
+Package: openstack-functional-core
+Source: regress-stack
+Version: 0.0.1~pre2
+Architecture: all
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Installed-Size: 9
+Depends: ceph-mgr, ceph-mon, ceph-osd, ceph-volume, cinder-api, cinder-scheduler, cinder-volume, glance-api, keystone, mysql-server, neutron-ovn-metadata-agent, neutron-server, nova-api, nova-compute, nova-conductor, nova-scheduler, nova-spiceproxy, ovn-central, ovn-host, placement-api, python3-regress-stack, rabbitmq-server
+Section: python
+Priority: optional
+Description: Dependency package for OpenStack Core
+  Package for testing of all core Ubuntu OpenStack projects
