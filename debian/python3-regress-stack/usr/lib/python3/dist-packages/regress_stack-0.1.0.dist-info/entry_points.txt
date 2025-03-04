@@ -1,2 +1,0 @@
-[console_scripts]
-regress-stack = regress_stack.__main__:main
