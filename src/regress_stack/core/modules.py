@@ -6,8 +6,9 @@ import pkgutil
 import types
 import typing
 
-import apt
 import networkx as nx
+
+import regress_stack.core.apt as apt
 
 LOG = logging.getLogger(__name__)
 _MOD_REGISTRY: typing.MutableMapping[str, types.ModuleType] = {}
@@ -65,8 +66,6 @@ def build_dependency_graph(modules_mod: types.ModuleType) -> nx.DiGraph:
     modules = list(pkgutil.iter_modules([str(modules_dir)]))
     graph: nx.DiGraph[ModuleComp] = nx.DiGraph()
 
-    cache = apt.Cache()
-
     utils_mod = modules_mod.utils
 
     root = ModuleComp(utils_mod.__name__, utils_mod)
@@ -86,8 +85,7 @@ def build_dependency_graph(modules_mod: types.ModuleType) -> nx.DiGraph:
         )
         if hasattr(module_loaded, "PACKAGES"):
             for pkg_name in module_loaded.PACKAGES:
-                pkg = cache.get(pkg_name)
-                if not pkg or not pkg.is_installed:
+                if not apt.pkgs_installed([pkg_name]):
                     missing_deps.add(pkg_name)
             # Actually handle banned nodes
             if missing_deps:

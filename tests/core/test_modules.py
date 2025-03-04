@@ -23,8 +23,7 @@ def mock_module():
 
 @pytest.fixture
 def mock_apt(monkeypatch):
-    cache = {}
-    apt = Mock(Cache=Mock(return_value=cache))
+    apt = Mock(pkgs_installed=Mock(return_value=False))
 
     monkeypatch.setattr("regress_stack.core.modules.apt", apt)
     yield apt
@@ -79,7 +78,7 @@ def test_build_dependency_graph(monkeypatch, mock_module, mock_apt):
     monkeypatch.setattr("pkgutil.iter_modules", mock_iter_modules)
     monkeypatch.setattr("regress_stack.core.modules.load_module", mock_load_module)
 
-    mock_apt.Cache()["dep"] = Mock(is_installed=True)
+    mock_apt.pkgs_installed = Mock(return_value=True)
 
     graph = build_dependency_graph(mock_module)
     assert isinstance(graph, nx.DiGraph)
