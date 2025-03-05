@@ -15,21 +15,22 @@ from regress_stack.modules import (
     mysql,
     neutron,
     ovn,
+    placement,
     rabbitmq,
     utils,
 )
 from regress_stack.modules import utils as module_utils
 
 DEPENDENCIES = {
-    ceph,
-    cinder,
     glance,
     keystone,
     mysql,
     neutron,
     ovn,
     rabbitmq,
+    placement,
 }
+OPTIONAL_DEPENDENCIES = {ceph, cinder}
 PACKAGES = [
     "nova-api",
     "nova-conductor",

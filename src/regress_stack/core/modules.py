@@ -66,83 +66,118 @@ def build_dependency_graph(modules_mod: types.ModuleType) -> nx.DiGraph:
     modules = list(pkgutil.iter_modules([str(modules_dir)]))
     graph: nx.DiGraph[ModuleComp] = nx.DiGraph()
 
-    utils_mod = modules_mod.utils
-
-    root = ModuleComp(utils_mod.__name__, utils_mod)
-    graph.add_node(root)
-
-    banned = set()
-
     for module in modules:
-        if module.name == "utils":
-            continue
         canonical_name = package + "." + module.name
         module_loaded = load_module(canonical_name, module.module_finder.path)
-        missing_deps = set()
         mod = ModuleComp(
             canonical_name,
             module_loaded,
         )
-        if hasattr(module_loaded, "PACKAGES"):
-            for pkg_name in module_loaded.PACKAGES:
-                if not apt.pkgs_installed([pkg_name]):
-                    missing_deps.add(pkg_name)
-            # Actually handle banned nodes
-            if missing_deps:
-                LOG.debug(
-                    "Skipping module %r due to missing package dependencies: %r",
-                    module.name,
-                    missing_deps,
-                )
-                banned.add(mod)
-                continue
-
         dependencies: set[types.ModuleType] = getattr(
             module_loaded, "DEPENDENCIES", set()
         )
-        if dependencies.intersection(banned):
-            LOG.debug(
-                "Skipping module %r due to missing dependencies: %r",
-                module.name,
-                dependencies.intersection(banned),
-            )
-            banned.add(mod)
-            continue
-        graph.add_node(mod)
-        graph.add_edge(root, mod)
+        optional_dependencies: set[types.ModuleType] = getattr(
+            module_loaded, "OPTIONAL_DEPENDENCIES", set()
+        )
+        # In case someone includes a dependency in both DEPENDENCIES and OPTIONAL_DEPENDENCIES
+        dependencies = dependencies - optional_dependencies
+        graph.add_node(
+            mod, installed=apt.pkgs_installed(getattr(module_loaded, "PACKAGES", []))
+        )
         for dep in dependencies:
-            graph.add_edge(ModuleComp(dep.__name__, dep), mod)
+            graph.add_edge(ModuleComp(dep.__name__, dep), mod, optional=False)
+        for dep in optional_dependencies:
+            graph.add_edge(ModuleComp(dep.__name__, dep), mod, optional=True)
 
-    # Remove banned modules and their dependents
-    to_remove = set()
-    for banned_node in banned:
-        if banned_node in graph:
-            to_remove.add(banned_node)
-            to_remove.update(nx.descendants(graph, banned_node))
-
-    graph.remove_nodes_from(to_remove)  # Remove all in one operation
-    LOG.debug("Removed nodes due to missing dependencies: %r", to_remove)
     return graph
+
+
+def filter_graph(G: nx.DiGraph) -> nx.DiGraph:
+    """Remove nodes with uninstalled packages."""
+    # Identify nodes with installed=False
+    nodes_to_remove = {
+        n for n, data in G.nodes(data=True) if not data.get("installed", False)
+    }
+
+    # Identify nodes that are only connected via optional=True edges
+    def is_only_optional(n):
+        """If all predecessors are optional, then this node is optional.
+
+        If there are no predecessors, then this node is not optional.
+        """
+        predecessors = list(G.predecessors(n))
+        if not predecessors:
+            return False
+
+        return all(
+            G.get_edge_data(pred, n).get("optional", False) for pred in predecessors
+        )
+
+    # Identity nodes missing required dependencies
+    def is_missing_required(n, to_remove: set):
+        """If predecessor is missing, then this node is missing."""
+        predecessors = set(G.predecessors(n))
+        if not predecessors:
+            return False
+
+        # Only consider required predecessors
+        predecessors = {
+            pred
+            for pred in predecessors
+            if not G.get_edge_data(pred, n, {}).get("optional", False)
+        }
+        return bool(predecessors.intersection(to_remove))
+
+    # Collect nodes to remove
+    changed = True
+    while changed:
+        changed = False
+        for node in G.nodes:
+            if node not in nodes_to_remove and (
+                is_only_optional(node) or is_missing_required(node, nodes_to_remove)
+            ):
+                nodes_to_remove.add(node)
+                changed = True  # Ensure we check again after removals
+
+    LOG.debug("Removing nodes %r", nodes_to_remove)
+
+    G.remove_nodes_from(nodes_to_remove)
+
+    return G
+
+
+def get_subgraph_to_path(G: nx.DiGraph, target: str) -> nx.DiGraph:
+    """Return subgraph to target."""
+    subgraph = nx.ancestors(G, target)
+    subgraph.add(target)
+    return G.subgraph(subgraph)
 
 
 def get_execution_order(
     modules_mod: types.ModuleType, target=None
 ) -> typing.List[ModuleComp]:
-    """Determine the execution order of modules based on dependencies."""
+    """Determine the execution order of modules based on dependencies.
+
+    Always include the utils module as the first module.
+    """
     LOG.debug("Building dependency graph from %r...", modules_mod.__name__)
+
+    utils_mod = modules_mod.utils
+    utils = ModuleComp(str(utils_mod.__name__), utils_mod)
+    if target == "utils":
+        return [utils]
+
     graph = build_dependency_graph(modules_mod)
+    graph = filter_graph(graph)
 
     if not nx.is_directed_acyclic_graph(graph):
         raise RuntimeError("Circular dependency detected!")
 
     order = list(nx.lexicographical_topological_sort(graph))
+    if utils in order:
+        order.remove(utils)
     if not target:
-        return order
-
-    utils_mod = modules_mod.utils
-    root = ModuleComp(str(utils_mod.__name__), utils_mod)
-
-    start_node = root
+        return [utils] + order
 
     end_node = None
     for mod in order:
@@ -152,7 +187,8 @@ def get_execution_order(
     else:
         raise RuntimeError(f"Target {target!r} not found!")
 
-    paths = nx.all_simple_paths(graph, start_node, end_node)
-    nodes_between_set = {node for path in paths for node in path}
-    sg: nx.DiGraph[ModuleComp] = graph.subgraph(nodes_between_set)
-    return list(nx.lexicographical_topological_sort(sg))
+    sg: nx.DiGraph[ModuleComp] = get_subgraph_to_path(graph, end_node)
+    order = list(nx.lexicographical_topological_sort(sg))
+    if utils in order:
+        order.remove(utils)
+    return [utils] + order
