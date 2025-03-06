@@ -23,5 +23,10 @@ jobs:
     - name: Install uv
       run: sudo snap install --classic astral-uv
 
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install --yes dpkg-dev libapt-pkg-dev
+
     - name: Run unit-tests
       run: uv run py.test
