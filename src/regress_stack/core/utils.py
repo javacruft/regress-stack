@@ -3,6 +3,7 @@ import functools
 import ipaddress
 import logging
 import pathlib
+import platform
 import socket
 import subprocess
 import time
@@ -144,3 +145,24 @@ def exists_cache(path: pathlib.Path):
         return wrapper
 
     return decorator
+
+
+def machine() -> str:
+    """Return machine type."""
+    machine_name = platform.machine().lower()
+    if machine_name == "x86_64":
+        return "amd64"
+    elif machine_name == "aarch64":
+        return "arm64"
+    elif machine_name == "powerpc":
+        return "ppc64el"
+    return machine_name
+
+
+def release() -> str:
+    """Return release name."""
+    try:
+        return platform.freedesktop_os_release()["VERSION_CODENAME"]
+    except Exception:
+        LOG.exception("Failed to get release name")
+        return "noble"
