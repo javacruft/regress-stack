@@ -1,5 +1,5 @@
-regress-stack (0.1.0) UNRELEASED; urgency=medium
+regress-stack (0.1.0) plucky; urgency=medium
 
   * Initial release.
 
- -- Guillaume Boutry <guillaume.boutry@canonical.com>  Thu, 28 Feb 2025 18:22:37 +1000
+ -- Guillaume Boutry <guillaume.boutry@canonical.com>  Thu, 06 Mar 2025 15:35:06 +0000
