@@ -26,6 +26,8 @@ Depends:
 Description: Regression testing tools for Ubuntu OpenStack
  regress-stack provides setup and testing tools for configuration
  and testing of Ubuntu OpenStack packages.
+ .
+ This package contains the regress-stack tooling.
 
 Package: openstack-functional-core
 Architecture: all
@@ -52,5 +54,9 @@ Depends:
  placement-api,
  python3-regress-stack,
  rabbitmq-server,
-Description: Dependency package for OpenStack Core
-  Package for testing of all core Ubuntu OpenStack projects
+Description: Dependency package for testing OpenStack Core
+ regress-stack provides setup and testing tools for configuration
+ and testing of Ubuntu OpenStack packages.
+ .
+ This package is a dependency package for testing of all core
+ Ubuntu OpenStack projects.
