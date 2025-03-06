@@ -13,6 +13,12 @@ To get started with Regress Stack, follow these simple steps:
    cd regress-stack
    ```
 
+3. **Install pre-commit**:
+
+   ```bash
+   uvx pre-commit install
+   ```
+
 2. **Install Dependencies**:
 
    ```bash
@@ -22,14 +28,14 @@ To get started with Regress Stack, follow these simple steps:
 3. **Run Tests**:
 
    ```bash
-   pytest
+   uv run py.test
    ```
 
 4. **Run the Regress Stack**:
 
    ```bash
-    regress-stack setup
-    regress-stack test
+   uv run regress-stack setup
+   uv run regress-stack test
    ```
 
 ## Contributing
