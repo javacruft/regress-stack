@@ -9,6 +9,7 @@ import regress_stack.modules
 from regress_stack.core import utils
 from regress_stack.core.modules import get_execution_order, modules
 from regress_stack.modules import keystone
+from regress_stack.modules import utils as module_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -64,15 +65,29 @@ def collect_logs():
 def test():
     env = keystone.auth_env()
     dir_name = "mycloud01"
+    release = utils.release()
     utils.run("tempest", ["init", dir_name])
     utils.run(
         "discover-tempest-config",
-        ["--create"],
+        [
+            "--create",
+            "--flavor-min-mem",
+            "1024",
+            "--flavor-min-disk",
+            "5",
+            "--image",
+            f"http://cloud-images.ubuntu.com/{release}/current/{release}-server-cloudimg-{utils.machine()}.img",
+        ],
         env=env,
         cwd=dir_name,
     )
+    module_utils.cfg_set(
+        dir_name + "/etc/tempest.conf",
+        ("validation", "image_ssh_user", "ubuntu"),
+        ("validation", "image_alt_ssh_user", "ubuntu"),
+    )
     try:
-        utils.run("tempest", ["run", "--smoke"], env=env, cwd=dir_name)
+        utils.run("tempest", ["run", "--smoke", "--serial"], env=env, cwd=dir_name)
     except subprocess.CalledProcessError:
         # silence to fail on the next command
         pass
