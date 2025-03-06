@@ -22,8 +22,8 @@ def test_get_cache(mock_apt):
 
 def test_pkgs_installed(mock_apt):
     regress_stack.core.apt.APT_CACHE = None
-    assert regress_stack.core.apt.pkgs_installed(["pkg"]) == False
+    assert regress_stack.core.apt.pkgs_installed(["pkg"]) is False
 
     regress_stack.core.apt.APT_CACHE = None
     mock_apt.Cache()["pkg"] = Mock(is_installed=True)
-    assert regress_stack.core.apt.pkgs_installed(["pkg"]) == True
+    assert regress_stack.core.apt.pkgs_installed(["pkg"]) is True
