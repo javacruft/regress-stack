@@ -6,6 +6,7 @@ import typing
 import uuid
 from pathlib import Path
 
+from regress_stack.core import apt as core_apt
 from regress_stack.core import utils as core_utils
 from regress_stack.modules import utils as module_utils
 
@@ -75,7 +76,15 @@ TasksMax=infinity
 WantedBy=ceph-osd.target
 """
 
+
+def installed() -> bool:
+    return core_apt.pkgs_installed(PACKAGES)
+
+
 def setup():
+    if not installed():
+        return
+
     module_utils.cfg_set(
         CONF,
         *module_utils.dict_to_cfg_set_args(
@@ -327,7 +336,9 @@ def setup_osd(i: int) -> Path:
     except subprocess.CalledProcessError as e:
         if "systemd support not yet implemented" in e.stderr:
             template_systemd_osd()
-            core_utils.run("ceph-volume", ["raw", "activate", "--osd-id", str(i), "--no-systemd"])
+            core_utils.run(
+                "ceph-volume", ["raw", "activate", "--osd-id", str(i), "--no-systemd"]
+            )
         else:
             LOG.error("Failed to activate osd %d: %s", i, e)
             raise
@@ -385,6 +396,7 @@ def rbd_uuid() -> str:
     uuid_str = str(uuid.uuid4())
     RBD_UUID.write_text(uuid_str)
     return uuid_str
+
 
 @core_utils.exists_cache(CEPH_OSD_UNIT_PATH)
 def template_systemd_osd() -> Path:

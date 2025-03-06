@@ -15,21 +15,22 @@ from regress_stack.modules import (
     mysql,
     neutron,
     ovn,
+    placement,
     rabbitmq,
     utils,
 )
 from regress_stack.modules import utils as module_utils
 
 DEPENDENCIES = {
-    ceph,
-    cinder,
     glance,
     keystone,
     mysql,
     neutron,
     ovn,
     rabbitmq,
+    placement,
 }
+OPTIONAL_DEPENDENCIES = {ceph, cinder}
 PACKAGES = [
     "nova-api",
     "nova-conductor",
@@ -53,7 +54,6 @@ def setup():
     db_cell0_user, db_cell0_pass = mysql.ensure_service("nova_cell0")
     rabbit_user, rabbit_pass = rabbitmq.ensure_service(SERVICE)
     username, password = keystone.ensure_service_account(SERVICE, SERVICE_TYPE, URL)
-    pool = ceph.ensure_pool(cinder.VOLUME_POOL)
     module_utils.cfg_set(
         CONF,
         (
@@ -117,22 +117,34 @@ def setup():
             "libvirt",
             {
                 "virt_type": virt_type(),
-                "rbd_user": pool,
-                "rbd_secret_uuid": ensure_libvirt_ceph_secret(),
-                "images_rbd_pool": pool,
             },
         ),
         ("os_vif_ovs", "ovsdb_connection", ovn.OVSDB_CONNECTION),
-        *module_utils.dict_to_cfg_set_args(
-            "cinder",
-            {
-                "service_type": cinder.SERVICE_TYPE,
-                "service_name": cinder.SERVICE,
-                "region_name": utils.REGION,
-                "volume_api_version": "3",
-            },
-        ),
     )
+
+    if ceph.installed() and cinder.installed():
+        pool = ceph.ensure_pool(cinder.VOLUME_POOL)
+        module_utils.cfg_set(
+            CONF,
+            *module_utils.dict_to_cfg_set_args(
+                "libvirt",
+                {
+                    "virt_type": virt_type(),
+                    "rbd_user": pool,
+                    "rbd_secret_uuid": ensure_libvirt_ceph_secret(),
+                    "images_rbd_pool": pool,
+                },
+            ),
+            *module_utils.dict_to_cfg_set_args(
+                "cinder",
+                {
+                    "service_type": cinder.SERVICE_TYPE,
+                    "service_name": cinder.SERVICE,
+                    "region_name": utils.REGION,
+                    "volume_api_version": "3",
+                },
+            ),
+        )
 
     core_utils.sudo("nova-manage", ["api_db", "sync"], user="nova")
     core_utils.sudo(

@@ -32,7 +32,7 @@ def print_ascii_banner(msg: str):
 
 @contextlib.contextmanager
 def banner(msg: str):
-    print_ascii_banner("START " +msg)
+    print_ascii_banner("START " + msg)
     yield
     print_ascii_banner("END " + msg)
 
