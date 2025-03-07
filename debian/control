@@ -41,13 +41,13 @@ Depends:
  cinder-api,
  cinder-scheduler,
  cinder-volume,
+ default-mysql-server,
  glance-api,
  heat-api,
  heat-api-cfn,
  heat-engine,
  heat-tempest-plugin,
  keystone,
- mysql-server,
  neutron-ovn-metadata-agent,
  neutron-server,
  nova-api,
@@ -60,6 +60,7 @@ Depends:
  placement-api,
  python3-regress-stack,
  rabbitmq-server,
+ ${misc:Depends},
 Description: Dependency package for testing OpenStack Core
  regress-stack provides setup and testing tools for configuration
  and testing of Ubuntu OpenStack packages.

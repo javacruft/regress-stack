@@ -4,5 +4,4 @@ Depends:
  openstack-functional-core,
 Restrictions:
  allow-stderr,
- needs-recommends,
  needs-root,
