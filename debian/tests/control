@@ -1,5 +1,5 @@
 Tests:
- openstack-functional-core,
+ openstack,
 Depends:
  ceph-mgr,
  ceph-mon,
