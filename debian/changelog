@@ -5,6 +5,7 @@ regress-stack (0.2.0) UNRELEASED; urgency=medium
   * d/tests/openstack-functional-core: Set proxy exclusions using no_proxy.
   * d/copyright: Align copyright holder with source.
   * d/*: Misc lintian cleanup.
+  * d/rules: Ensure temp files cleaned correctly.
 
  -- James Page <james.page@ubuntu.com>  Fri, 07 Mar 2025 13:29:45 +0000
 
