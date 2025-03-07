@@ -26,3 +26,7 @@ def dict_to_cfg_set_args(
     section: str, d: typing.Dict[str, str]
 ) -> typing.List[typing.Tuple[str, str, str]]:
     return [(section, k, v) for k, v in d.items()]
+
+
+def cfg_get(config_file: str, section: str, key: str) -> str:
+    return core_utils.run("crudini", ["--get", config_file, section, key])

@@ -73,8 +73,8 @@ def setup():
     authrc = auth_rc()
     print(authrc)
     pathlib.Path("~/auth.rc").expanduser().write_text(authrc)
-    ensure_domain(SERVICE_DOMAIN)
-    ensure_project(SERVICE_PROJECT, SERVICE_DOMAIN)
+    domain = ensure_domain(SERVICE_DOMAIN)
+    ensure_project(SERVICE_PROJECT, domain.id)
     ensure_role("_member_")
 
 
@@ -136,10 +136,11 @@ def region() -> str:
 def ensure_domain(name: str):
     conn = o7k()
     LOG.debug("Ensuring domain %r exists...", name)
-    if conn.identity.find_domain(name, ignore_missing=True):
-        return
+    domain = conn.identity.find_domain(name, ignore_missing=True)
+    if domain:
+        return domain
     LOG.debug("Creating domain %r...", name)
-    conn.identity.create_domain(name=name)
+    return conn.identity.create_domain(name=name)
 
 
 @functools.lru_cache()
@@ -148,15 +149,27 @@ def service_domain() -> str:
     return conn.identity.find_domain(SERVICE_DOMAIN).id
 
 
+@functools.lru_cache()
+def default_domain() -> str:
+    conn = o7k()
+    return conn.identity.find_domain("Default").id
+
+
+@functools.lru_cache()
+def admin_user():
+    conn = o7k()
+    return conn.identity.find_user("admin", domain_id=default_domain())
+
+
 def ensure_project(name: str, domain: str):
     conn = o7k()
     LOG.debug("Ensuring project %r exists...", name)
-    domain = service_domain()
 
-    if conn.identity.find_project(name, domain_id=domain, ignore_missing=True):
-        return
+    project = conn.identity.find_project(name, domain_id=domain, ignore_missing=True)
+    if project:
+        return project
     LOG.debug("Creating project %r...", name)
-    conn.identity.create_project(name=name, domain_id=domain)
+    return conn.identity.create_project(name=name, domain_id=domain)
 
 
 @functools.lru_cache()
@@ -196,9 +209,9 @@ def ensure_user(name, password, domain):
 
 
 @functools.lru_cache()
-def admin_role() -> str:
+def admin_role():
     conn = o7k()
-    return conn.identity.find_role("admin").id
+    return conn.identity.find_role("admin")
 
 
 def ensure_role(name: str):
@@ -215,7 +228,7 @@ def ensure_admin(user, project):
     conn = o7k()
     LOG.debug("Ensuring user %r is admin of project %r...", user.name, project)
 
-    conn.identity.assign_project_role_to_user(project, user, admin_role())
+    conn.identity.assign_project_role_to_user(project, user, admin_role().id)
 
 
 def ensure_service(name: str, type: str):
@@ -250,3 +263,15 @@ def ensure_endpoint(service, url: str):
     # Clear connection after updating endpoints
     conn.close()
     o7k.cache_clear()
+
+
+def grant_domain_role(user, role, domain):
+    conn = o7k()
+    LOG.debug("Granting role %r to user %r...", role, user)
+    domain.assign_role_to_user(conn.identity, user, role)
+
+
+def grant_project_role(user, role, project):
+    conn = o7k()
+    LOG.debug("Granting role %r to user %r...", role, user)
+    project.assign_role_to_user(conn.identity, user, role)
