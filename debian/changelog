@@ -1,3 +1,20 @@
+regress-stack (0.2.0) UNRELEASED; urgency=medium
+
+  * Add copyright and license headers to all source code.
+  * d/control: Add Vcs fields.
+  * d/tests/openstack-functional-core: Set proxy exclusions using no_proxy.
+  * d/copyright: Align copyright holder with source.
+  * d/*: Misc lintian cleanup.
+  * d/rules: Ensure temp files cleaned correctly.
+  * d/control: Update description to detail behaviour for autopkgtest
+    reverse dependency testing.
+  * d/{tests/}control: Switch to using hint-testsuite-triggers instead
+    of a dependency package for reverse dependency testing.
+  * d/tests/control,openstack{-functional-core}: Rename openstack-
+    functional-core to openstack.
+
+ -- James Page <james.page@ubuntu.com>  Fri, 07 Mar 2025 13:29:45 +0000
+
 regress-stack (0.1.0) plucky; urgency=medium
 
   * Initial release.

@@ -1,3 +1,6 @@
+# Copyright 2025 - Canonical Ltd
+# SPDX-License-Identifier: Apache-2.0
+
 from regress_stack.core import apt as core_apt
 from regress_stack.core import utils as core_utils
 from regress_stack.modules import ceph, keystone, mysql, rabbitmq

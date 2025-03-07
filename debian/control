@@ -14,6 +14,8 @@ Build-Depends-Indep:
  python3-pyroute2,
  python3-pytest,
 Standards-Version: 4.6.1
+Vcs-Git: https://github.com/gboutry/regress-stack
+Vcs-Browser: https://github.com/gboutry/regress-stack
 
 Package: python3-regress-stack
 Architecture: all
@@ -28,39 +30,3 @@ Description: Regression testing tools for Ubuntu OpenStack
  and testing of Ubuntu OpenStack packages.
  .
  This package contains the regress-stack tooling.
-
-Package: openstack-functional-core
-Architecture: all
-Depends:
- ceph-mgr,
- ceph-mon,
- ceph-osd,
- ceph-volume,
- cinder-api,
- cinder-scheduler,
- cinder-volume,
- glance-api,
- heat-api,
- heat-api-cfn,
- heat-engine,
- heat-tempest-plugin,
- keystone,
- mysql-server,
- neutron-ovn-metadata-agent,
- neutron-server,
- nova-api,
- nova-compute,
- nova-conductor,
- nova-scheduler,
- nova-spiceproxy,
- ovn-central,
- ovn-host,
- placement-api,
- python3-regress-stack,
- rabbitmq-server,
-Description: Dependency package for testing OpenStack Core
- regress-stack provides setup and testing tools for configuration
- and testing of Ubuntu OpenStack packages.
- .
- This package is a dependency package for testing of all core
- Ubuntu OpenStack projects.

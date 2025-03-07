@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -ex
+
+no_proxy="$(hostname -A | tr ' ' ','),$(hostname -f),$(hostname -I | tr ' ' ','),$no_proxy"
+no_proxy="${no_proxy/,,/,}"
+
+export no_proxy
+
+regress-stack plan
+regress-stack setup
+regress-stack test

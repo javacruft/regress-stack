@@ -1,3 +1,6 @@
+# Copyright 2025 - Canonical Ltd
+# SPDX-License-Identifier: Apache-2.0
+
 import logging
 
 from regress_stack.core import utils as core_utils
