@@ -2,10 +2,10 @@
 
 set -ex
 
-NO_PROXY="localhost,$(hostname -A | tr ' ' ','),$(hostname -I | tr ' ' ','),$NO_PROXY"
-NO_PROXY="${NO_PROXY/,,/,}"
+no_proxy="$(hostname -A | tr ' ' ','),$(hostname -f),$(hostname -I | tr ' ' ','),$no_proxy"
+no_proxy="${no_proxy/,,/,}"
 
-export NO_PROXY
+export no_proxy
 
 regress-stack plan
 regress-stack setup
