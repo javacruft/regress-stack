@@ -1,3 +1,6 @@
+# Copyright 2025 - Canonical Ltd
+# SPDX-License-Identifier: Apache-2.0
+
 from regress_stack.core import utils as core_utils
 from regress_stack.modules import keystone, mysql
 from regress_stack.modules import utils as module_utils
