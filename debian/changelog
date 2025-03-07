@@ -3,6 +3,7 @@ regress-stack (0.2.0) UNRELEASED; urgency=medium
   * Add copyright and license headers to all source code.
   * d/control: Add Vcs fields.
   * d/tests/openstack-functional-core: Set proxy exclusions using no_proxy.
+  * d/copyright: Align copyright holder with source.
 
  -- James Page <james.page@ubuntu.com>  Fri, 07 Mar 2025 13:29:45 +0000
 

@@ -4,7 +4,7 @@ Upstream-Contact: Ubuntu OpenStack Development Mailing List <ubuntu-openstack-bu
 Source: https://github.com/gboutry/regress-stack.git
 
 Files: *
-Copyright: (c) 2025 Ubuntu Openstack Developers
+Copyright: 2025 Canonical Ltd
 License: Apache-2.0
 
 License: Apache-2.0
