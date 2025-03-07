@@ -1,7 +1,7 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: regress-stack
 Upstream-Contact: Ubuntu OpenStack Development Mailing List <ubuntu-openstack-bugs@lists.ubuntu.com>
-Source: https://github.com/gboutry/regress-stack.git
+Source: https://github.com/canonical/regress-stack.git
 
 Files: *
 Copyright: 2025 Canonical Ltd

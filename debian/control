@@ -14,8 +14,8 @@ Build-Depends-Indep:
  python3-pyroute2,
  python3-pytest,
 Standards-Version: 4.6.1
-Vcs-Git: https://github.com/gboutry/regress-stack
-Vcs-Browser: https://github.com/gboutry/regress-stack
+Vcs-Git: https://github.com/canonical/regress-stack
+Vcs-Browser: https://github.com/canonical/regress-stack
 
 Package: python3-regress-stack
 Architecture: all

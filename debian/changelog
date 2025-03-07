@@ -12,6 +12,7 @@ regress-stack (0.2.0) UNRELEASED; urgency=medium
     of a dependency package for reverse dependency testing.
   * d/tests/control,openstack{-functional-core}: Rename openstack-
     functional-core to openstack.
+  * d/control,copyright: Update project location.
 
  -- James Page <james.page@ubuntu.com>  Fri, 07 Mar 2025 13:29:45 +0000
 
