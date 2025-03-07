@@ -29,6 +29,7 @@ def setup(target: str):
             if setup := getattr(mod.module, "setup", None):
                 with utils.measure("setup " + mod.name):
                     setup()
+                    utils.mark_setup(mod.name)
     except Exception as e:
         LOG.error("Failed to setup %s: %s", target, e)
         collect_logs()
@@ -81,13 +82,53 @@ def test():
         env=env,
         cwd=dir_name,
     )
+    tempest_conf = pathlib.Path(dir_name) / "etc" / "tempest.conf"
     module_utils.cfg_set(
-        dir_name + "/etc/tempest.conf",
+        str(tempest_conf),
         ("validation", "image_ssh_user", "ubuntu"),
         ("validation", "image_alt_ssh_user", "ubuntu"),
     )
+
+    test_regexes = []
+    for mod in get_execution_order(regress_stack.modules):
+        if not utils.is_setup_done(mod.name):
+            LOG.info("Skipping %s", mod.name)
+            continue
+        if configure := getattr(mod.module, "configure_tempest", None):
+            with utils.measure("configure_tempest " + mod.name):
+                configure(tempest_conf)
+        includes_regexes = getattr(mod.module, "TEST_INCLUDE_REGEXES", [])
+        exclude_regexes = getattr(mod.module, "TEST_EXCLUDE_REGEXES", [])
+        if not includes_regexes:
+            # If no include defined, it would get too much tests
+            continue
+        test_regexes.append((includes_regexes, exclude_regexes))
+
+    LOG.info("Building test list")
+    regress_tests = utils.run(
+        "tempest", ["run", "--smoke", "--list"], env=env, cwd=dir_name
+    )
+
+    for include_regexes, exclude_regexes in test_regexes:
+        args = []
+        for regex in include_regexes:
+            args.extend(("--regex", regex))
+        for regex in exclude_regexes:
+            args.extend(("--exclude-regex", regex))
+        regress_tests += utils.run(
+            "tempest", ["run", "--list", *args], env=env, cwd=dir_name
+        )
+
+    regress_list = pathlib.Path(dir_name) / "regress_tests.txt"
+    regress_list.write_text(regress_tests)
+
     try:
-        utils.run("tempest", ["run", "--smoke", "--serial"], env=env, cwd=dir_name)
+        utils.run(
+            "tempest",
+            ["run", "--load-list", str(regress_list.relative_to(dir_name)), "--serial"],
+            env=env,
+            cwd=dir_name,
+        )
     except subprocess.CalledProcessError:
         # silence to fail on the next command
         pass

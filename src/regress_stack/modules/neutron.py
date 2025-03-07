@@ -1,3 +1,4 @@
+import functools
 import ipaddress
 import logging
 import time
@@ -18,6 +19,8 @@ ML2_CONF = "/etc/neutron/plugins/ml2/ml2_conf.ini"
 URL = f"http://{core_utils.fqdn()}:9696/"
 
 METADATA_SECRET = "bonjour"
+
+EXTERNAL_NETWORK = "external-network"
 
 
 def setup():
@@ -126,10 +129,10 @@ def ensure_public_network():
     conn = keystone.o7k()
 
     # create external network
-    network = conn.network.find_network("external-network", ignore_missing=True)
+    network = conn.network.find_network(EXTERNAL_NETWORK, ignore_missing=True)
     if not network:
         network = conn.network.create_network(
-            name="external-network",
+            name=EXTERNAL_NETWORK,
             is_router_external=True,
             is_shared=True,
             is_default=True,
@@ -153,3 +156,70 @@ def ensure_public_network():
             allocation_pools=[{"start": str(first_host), "end": str(last_host)}],
             enable_dhcp=False,
         )
+
+
+@functools.lru_cache()
+def public_network():
+    conn = keystone.o7k()
+    return conn.network.find_network(EXTERNAL_NETWORK)
+
+
+def ensure_network(name: str, project: str):
+    conn = keystone.o7k()
+    LOG.debug("Ensuring network %r exists...", name)
+    network = conn.network.find_network(name, project_id=project, ignore_missing=True)
+    if network:
+        return network
+    LOG.debug("Creating network %r...", name)
+    return conn.network.create_network(name=name, project_id=project)
+
+
+def ensure_subnet(name: str, network, cidr: str):
+    conn = keystone.o7k()
+    LOG.debug("Ensuring subnet %r exists...", name)
+    subnet = conn.network.find_subnet(name, network_id=network.id, ignore_missing=True)
+    if subnet:
+        return subnet
+    LOG.debug("Creating subnet %r...", name)
+    return conn.network.create_subnet(
+        name=name,
+        network_id=network.id,
+        ip_version=4,
+        cidr=cidr,
+    )
+
+
+def ensure_router(name: str, project):
+    conn = keystone.o7k()
+    LOG.debug("Ensuring router %r exists...", name)
+    router = conn.network.find_router(name, project_id=project.id, ignore_missing=True)
+    if router:
+        return router
+    LOG.debug("Creating router %r...", name)
+    return conn.network.create_router(
+        name=name,
+        project_id=project.id,
+        external_gateway_info={"network_id": public_network().id},
+    )
+
+
+def ensure_subnet_router(subnet, router):
+    conn = keystone.o7k()
+    LOG.debug("Ensuring subnet %r is attached to router %r...", subnet.name, router)
+
+    port_name = subnet.name + "-port"
+    port = conn.network.find_port(port_name, ignore_missing=True)
+    if not port:
+        port = conn.network.create_port(
+            name=port_name,
+            network_id=subnet.network_id,
+            fixed_ips=[{"subnet_id": subnet.id}],
+        )
+        conn.network.add_interface_to_router(router, port_id=port.id)
+
+    port = conn.network.find_port(port_name)
+
+    if port.device_id != router.id:
+        LOG.debug("Reattaching port %r to router %r...", port.name, router)
+        conn.network.remove_interface_from_router(port.device_id, port_id=port.id)
+        conn.network.add_interface_to_router(router, port_id=port.id)

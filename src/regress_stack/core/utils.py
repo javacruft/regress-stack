@@ -13,6 +13,8 @@ import pyroute2
 
 LOG = logging.getLogger(__name__)
 
+REGRESS_STACK_DIR = pathlib.Path("/var/lib/regress-stack/")
+
 
 @contextlib.contextmanager
 def measure(section: str):
@@ -166,3 +168,17 @@ def release() -> str:
     except Exception:
         LOG.exception("Failed to get release name")
         return "noble"
+
+
+def mark_setup(name: str):
+    """Mark task as done."""
+    REGRESS_STACK_DIR.mkdir(parents=True, exist_ok=True)
+    done_file = REGRESS_STACK_DIR / (name + ".setup")
+    done_file.touch()
+    return done_file
+
+
+def is_setup_done(name: str) -> bool:
+    """Check if task is done."""
+    done_file = REGRESS_STACK_DIR / (name + ".setup")
+    return done_file.exists()
