@@ -66,4 +66,5 @@ Description: Dependency package for testing OpenStack Core
  and testing of Ubuntu OpenStack packages.
  .
  This package is a dependency package for testing of all core
- Ubuntu OpenStack projects.
+ Ubuntu OpenStack projects and will trigger autopkgtests in the
+ event of any of its direct dependencies changing.

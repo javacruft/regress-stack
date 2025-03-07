@@ -6,6 +6,8 @@ regress-stack (0.2.0) UNRELEASED; urgency=medium
   * d/copyright: Align copyright holder with source.
   * d/*: Misc lintian cleanup.
   * d/rules: Ensure temp files cleaned correctly.
+  * d/control: Update description to detail behaviour for autopkgtest
+    reverse dependency testing.
 
  -- James Page <james.page@ubuntu.com>  Fri, 07 Mar 2025 13:29:45 +0000
 
